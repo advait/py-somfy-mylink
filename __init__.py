@@ -35,11 +35,29 @@ class SomfyMylink:
         print(resp)
         return resp
 
-    async def up(self, targetID):
+    async def _up(self, targetID):
         return await self._send('mylink.move.up', targetID)
 
-    async def down(self, targetID):
+    async def _down(self, targetID):
         return await self._send('mylink.move.down', targetID)
 
-    async def stop(self, targetID):
+    async def _stop(self, targetID):
         return await self._send('mylink.move.stop', targetID)
+
+    def target(self, targetID):
+        return SomfyMylinkTarget(self, targetID)
+
+
+class SomfyMylinkTarget:
+    def __init__(self, somfy, targetID):
+        self._somfy = somfy
+        self._targetID = targetID
+
+    async def up(self):
+        return await self._somfy._up(self._targetID)
+
+    async def down(self):
+        return await self._somfy._down(self._targetID)
+
+    async def stop(self):
+        return await self._somfy._stop(self._targetID)
