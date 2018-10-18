@@ -7,10 +7,17 @@ class SomfyMylink:
         self.host = host
         self.port = port
         self._id = 0
+        self._writer = self._reader = None
+
+    async def _connect(self):
+        if self._writer and not self._writer.is_closing():
+            return
+        self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
 
     async def _send(self, method, targetID):
         """Send the given method/command to the given targetID."""
-        reader, writer = await asyncio.open_connection(self.host, self.port)
+        await self._connect()
+        reader, writer = (self._reader, self._writer)
         self._id += 1
         req = {
             "id": self._id,
@@ -20,15 +27,13 @@ class SomfyMylink:
                 "targetID": targetID,
             },
         }
-        print('Writing')
+        print('Writing %s', json.dumps(req))
         writer.write(json.dumps(req).encode())
-        print('Draining')
         await writer.drain()
-        print('Reading')
         ret = await reader.readuntil(b'}')
-        print(ret)
         resp = json.loads(ret)
         print(resp)
+        return resp
 
     async def up(self, targetID):
         return await self._send('mylink.move.up', targetID)
