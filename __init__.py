@@ -2,8 +2,8 @@ import asyncio
 import json
 
 class SomfyMylink:
-    def __init__(self, systemID, host, port=44100):
-        self.systemID = systemID
+    def __init__(self, system_id, host, port=44100):
+        self.system_id = system_id
         self.host = host
         self.port = port
         self._id = 0
@@ -14,8 +14,8 @@ class SomfyMylink:
             return
         self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
 
-    async def _send(self, method, targetID):
-        """Send the given method/command to the given targetID."""
+    async def _send(self, method, target_id):
+        """Send the given method/command to the given target_id."""
         await self._connect()
         reader, writer = (self._reader, self._writer)
         self._id += 1
@@ -23,8 +23,8 @@ class SomfyMylink:
             "id": self._id,
             "method": method,
             "params": {
-                "auth": self.systemID,
-                "targetID": targetID,
+                "auth": self.system_id,
+                "targetID": target_id,
             },
         }
         print('Writing %s', json.dumps(req))
@@ -35,29 +35,29 @@ class SomfyMylink:
         print(resp)
         return resp
 
-    async def _up(self, targetID):
-        return await self._send('mylink.move.up', targetID)
+    async def _up(self, target_id):
+        return await self._send('mylink.move.up', target_id)
 
-    async def _down(self, targetID):
-        return await self._send('mylink.move.down', targetID)
+    async def _down(self, target_id):
+        return await self._send('mylink.move.down', target_id)
 
-    async def _stop(self, targetID):
-        return await self._send('mylink.move.stop', targetID)
+    async def _stop(self, target_id):
+        return await self._send('mylink.move.stop', target_id)
 
-    def target(self, targetID):
-        return SomfyMylinkTarget(self, targetID)
+    def target(self, target_id):
+        return SomfyMylinkTarget(self, target_id)
 
 
 class SomfyMylinkTarget:
-    def __init__(self, somfy, targetID):
+    def __init__(self, somfy, target_id):
         self._somfy = somfy
-        self._targetID = targetID
+        self._target_id = target_id
 
     async def up(self):
-        return await self._somfy._up(self._targetID)
+        return await self._somfy._up(self._target_id)
 
     async def down(self):
-        return await self._somfy._down(self._targetID)
+        return await self._somfy._down(self._target_id)
 
     async def stop(self):
-        return await self._somfy._stop(self._targetID)
+        return await self._somfy._stop(self._target_id)
