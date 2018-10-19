@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="somfy_mylink",
-    version="0.0.2",
+    version="0.0.3",
     author="Advait Shinde",
     author_email="advait.shinde@gmail.com",
     description="Python API bindings for the Somfy MyLink Synergy API",
