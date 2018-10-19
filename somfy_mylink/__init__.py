@@ -36,10 +36,13 @@ class SomfyMyLink:
         try:
             resps = await self._reader.readuntil(b'}')
             _LOGGER.debug('Received response: %s' % resps)
-            resp = json.loads(resps)
+            resp = json.loads(resps.decode('utf-8'))
             if resp.get('method', None) == 'mylink.status.keepalive':
                 _LOGGER.debug('Skipping keepalive message: %s', resps)
                 return await self._read()
+        except UnicodeDecodeError as e:
+            _LOGGER.error('Invalid unicode response: %s' % resps, exc_info=e)
+            raise e
         except json.decoder.JSONDecodeError as e:
             _LOGGER.error('Could not understand response: %s' % resps, exc_info=e)
             raise e
