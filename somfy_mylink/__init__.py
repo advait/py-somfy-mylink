@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 
+_LOGGER = logging.getLogger(__name__)
+
 class SomfyMyLink:
     """Wraps access to a Somfy MyLink Hub via the Somfy Synergy API."""
 
@@ -17,6 +19,17 @@ class SomfyMyLink:
             return
         self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
 
+    async def _write(self, bs):
+        """Write the given bytes to the writer. Reopen connection if it is lost."""
+        await self._connect()
+        try:
+            self._writer.write(bs)
+            return await self._writer.drain()
+        except ConnectionResetError as e:
+            _LOGGER.debug('Connection reset while writing, retrying',
+                    exc_info=e)
+            return await self._write(self.bs)
+
     async def _send(self, method, target_id):
         """Send the given method/command to the given target_id."""
         await self._connect()
@@ -31,15 +44,19 @@ class SomfyMyLink:
             },
         }
         reqs = json.dumps(req)
-        logging.debug('Sending request: %s' % reqs)
-        writer.write(reqs.encode())
-        await writer.drain()
-        resps = await reader.readuntil(b'}')
-        logging.debug('Received response: %s' % resps)
+        _LOGGER.debug('Sending request: %s' % reqs)
+        await self._write(reqs.encode())
         try:
+            resps = await reader.readuntil(b'}')
+            _LOGGER.debug('Received response: %s' % resps)
             resp = json.loads(resps)
         except json.decoder.JSONDecodeError as e:
-            logging.error('Could not understand response: %s' % resps, exc_info=e)
+            _LOGGER.error('Could not understand response: %s' % resps, exc_info=e)
+            raise e
+        except ConnectionResetError as e:
+            _LOGGER.error(
+                    'Connection reset while reading, no response received',
+                    exc_info=e)
             raise e
         return resp
 
