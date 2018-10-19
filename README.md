@@ -21,3 +21,6 @@ await cover.down()
 await cover.stop()
 ```
 
+## System ID and Target IDs
+The System ID and Target IDs can be found in the "Integration Report"  in your Somfy MyLink app:
+![Screenshot](https://user-images.githubusercontent.com/504011/47191668-7ff32480-d2fd-11e8-9b3a-573e0388aebf.png)
