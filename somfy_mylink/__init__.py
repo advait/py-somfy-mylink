@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 class SomfyMyLink:
     """Wraps access to a Somfy MyLink Hub via the Somfy Synergy API."""
@@ -29,12 +30,17 @@ class SomfyMyLink:
                 "targetID": target_id,
             },
         }
-        print('Writing %s', json.dumps(req))
-        writer.write(json.dumps(req).encode())
+        reqs = json.dumps(req)
+        logging.debug('Sending request: %s' % reqs)
+        writer.write(reqs.encode())
         await writer.drain()
-        ret = await reader.readuntil(b'}')
-        resp = json.loads(ret)
-        print(resp)
+        resps = await reader.readuntil(b'}')
+        logging.debug('Received response: %s' % resps)
+        try:
+            resp = json.loads(resps)
+        except json.decoder.JSONDecodeError as e:
+            logging.error('Could not understand response: %s' % resps, exc_info=e)
+            raise e
         return resp
 
     async def _up(self, target_id):
