@@ -1,2 +1,5 @@
 *.swp
 __pycache__/
+dist/
+build/
+somfy_mylink.egg-info/
