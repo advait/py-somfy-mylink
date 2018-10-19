@@ -17,6 +17,7 @@ class SomfyMyLink:
     async def _connect(self):
         if self._writer and not self._writer.transport.is_closing():
             return
+        _LOGGER.debug('Creating new connection to Somfy MyLink')
         self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
 
     async def _write(self, bs):
@@ -29,6 +30,25 @@ class SomfyMyLink:
             _LOGGER.debug('Connection reset while writing, retrying',
                     exc_info=e)
             return await self._write(self.bs)
+
+    async def _read(self):
+        """Read the response from the backend, ignoring keeplive messages."""
+        try:
+            resps = await self._reader.readuntil(b'}')
+            _LOGGER.debug('Received response: %s' % resps)
+            resp = json.loads(resps)
+            if resp.get('method', None) == 'mylink.status.keepalive':
+                _LOGGER.debug('Skipping keepalive message: %s', resps)
+                return await self._read()
+        except json.decoder.JSONDecodeError as e:
+            _LOGGER.error('Could not understand response: %s' % resps, exc_info=e)
+            raise e
+        except ConnectionResetError as e:
+            _LOGGER.error(
+                    'Connection reset while reading, no response received',
+                    exc_info=e)
+            raise e
+
 
     async def _send(self, method, target_id):
         """Send the given method/command to the given target_id."""
@@ -46,19 +66,7 @@ class SomfyMyLink:
         reqs = json.dumps(req)
         _LOGGER.debug('Sending request: %s' % reqs)
         await self._write(reqs.encode())
-        try:
-            resps = await reader.readuntil(b'}')
-            _LOGGER.debug('Received response: %s' % resps)
-            resp = json.loads(resps)
-        except json.decoder.JSONDecodeError as e:
-            _LOGGER.error('Could not understand response: %s' % resps, exc_info=e)
-            raise e
-        except ConnectionResetError as e:
-            _LOGGER.error(
-                    'Connection reset while reading, no response received',
-                    exc_info=e)
-            raise e
-        return resp
+        return await self._read()
 
     async def _up(self, target_id):
         return await self._send('mylink.move.up', target_id)
